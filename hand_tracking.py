@@ -1,8 +1,6 @@
 import time
-
 import cv2
 import math
-
 from mediapipe.python.solutions.hands import Hands
 from mediapipe.tasks.python.components.containers.landmark import NormalizedLandmark
 
@@ -11,8 +9,6 @@ from shared_data import shared_data
 from enums.finger import FingerName, FingerState
 from enums.gesture import GestureType
 from typing import Dict, Tuple, Optional
-
-hands = Hands(static_image_mode=False, max_num_hands=1, min_detection_confidence=0.5)
 
 selected_landmarks: Dict[FingerName, Tuple[int, int]] = {
     FingerName.INDEX: (5, 8),
@@ -53,6 +49,8 @@ def determine_gesture(fingers: Dict[FingerName, Finger]) -> Optional[GestureType
 
 def process_hand() -> None:
     cap = cv2.VideoCapture(0)
+    current_player_count = shared_data.player_count
+    hands = Hands(static_image_mode=False, max_num_hands=current_player_count, min_detection_confidence=0.5)
     while True:
         ret, frame = cap.read()
         if not ret:
@@ -64,30 +62,34 @@ def process_hand() -> None:
         with shared_data.lock:
             shared_data.frame = frame.copy()
 
-            if results.multi_hand_landmarks:
-                hand_landmarks = results.multi_hand_landmarks[0]
-                wrist = hand_landmarks.landmark[0]
-                fingers: Dict[FingerName, Finger] = {}
+            if results.multi_hand_landmarks and len(results.multi_hand_landmarks) >= current_player_count:
+                for hand_idx, hand_landmarks in enumerate(results.multi_hand_landmarks[:current_player_count], 1):
+                    wrist = hand_landmarks.landmark[0]
+                    fingers: Dict[FingerName, Finger] = {}
 
-                for finger_name, (mcp_index, tip_index) in selected_landmarks.items():
-                    mcp_landmark = hand_landmarks.landmark[mcp_index]
-                    tip_landmark = hand_landmarks.landmark[tip_index]
-                    wrist_to_mcp = calculate_distance(wrist, mcp_landmark)
-                    wrist_to_tip = calculate_distance(wrist, tip_landmark)
-                    position = determine_finger_position(wrist_to_mcp, wrist_to_tip)
-                    tip_x = int(tip_landmark.x * frame.shape[1])
-                    tip_y = int(tip_landmark.y * frame.shape[0])
-                    fingers[finger_name] = Finger(tip_x, tip_y, position)
+                    for finger_name, (mcp_index, tip_index) in selected_landmarks.items():
+                        mcp_landmark = hand_landmarks.landmark[mcp_index]
+                        tip_landmark = hand_landmarks.landmark[tip_index]
+                        wrist_to_mcp = calculate_distance(wrist, mcp_landmark)
+                        wrist_to_tip = calculate_distance(wrist, tip_landmark)
+                        position = determine_finger_position(wrist_to_mcp, wrist_to_tip)
+                        tip_x = int(tip_landmark.x * frame.shape[1])
+                        tip_y = int(tip_landmark.y * frame.shape[0])
+                        fingers[finger_name] = Finger(tip_x, tip_y, position)
 
-                current_gesture = determine_gesture(fingers)
-                shared_data.gesture = current_gesture
+                    current_gesture = determine_gesture(fingers)
+                    shared_data.gesture[hand_idx] = current_gesture
 
-                if current_gesture is not None:
-                    shared_data.last_valid_gesture = current_gesture
+                    if current_gesture is not None:
+                        shared_data.last_valid_gesture[hand_idx] = current_gesture
 
-                shared_data.fingers = fingers
+                    shared_data.fingers[hand_idx] = fingers
+
+                if shared_data.player_count == 2 and (shared_data.gesture[1] is None or shared_data.gesture[2] is None):
+                    shared_data.gesture = {1: None, 2: None}
+                    shared_data.fingers = {1: {}, 2: {}}
             else:
-                shared_data.gesture = None
-                shared_data.fingers = {}
+                shared_data.gesture = {1: None, 2: None}
+                shared_data.fingers = {1: {}, 2: {}}
         time.sleep(0.02)
     cap.release()
