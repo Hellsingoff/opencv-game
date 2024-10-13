@@ -1,13 +1,12 @@
 import threading
 import pygame
-from pygame import Surface
 
 from hand_tracking import process_hand
 from game_logic import game_loop
 from shared_data import shared_data
 
 
-def choose_players(screen: Surface) -> None:
+def choose_players(screen: pygame.Surface) -> None:
     font = pygame.font.SysFont('Arial', 40)
     button_width, button_height = 200, 50
     button_x = (screen.get_width() - button_width) // 2

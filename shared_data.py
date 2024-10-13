@@ -1,7 +1,7 @@
 import threading
 from typing import Optional, Dict, List
 
-from Finger import Finger
+from finger import Finger
 from enums.finger import FingerName
 from enums.gesture import GestureType
 

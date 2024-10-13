@@ -1,18 +1,16 @@
 from typing import Optional
+from random import choice
+from time import time, sleep
 
 import cv2
 import pygame
-from random import choice
-import time
-
-from pygame import Surface
 
 from shared_data import shared_data
 from enums.gesture import GestureType
 from enums.finger import FingerState
 
 
-def game_loop(screen: Surface):
+def game_loop(screen: pygame.Surface):
     font = pygame.font.SysFont('Arial', 20)
     score_player1 = 0
     score_player2 = 0
@@ -30,10 +28,10 @@ def game_loop(screen: Surface):
             result_texts = shared_data.result_texts
 
         player2_name = "Компьютер" if shared_data.player_count == 1 else "Игрок 2"
-        score_text_player1 = font.render(f"Счет:", True, (255, 255, 255))
+        score_text = font.render(f"Счет:", True, (255, 255, 255))
         score_text_player1_value = font.render(f"Игрок 1: {score_player1}", True, (255, 255, 255))
         score_text_player2_value = font.render(f"{player2_name}: {score_player2}", True, (255, 255, 255))
-        screen.blit(score_text_player1, (650, 20))
+        screen.blit(score_text, (650, 20))
         screen.blit(score_text_player1_value, (650, 50))
         screen.blit(score_text_player2_value, (650, 80))
 
@@ -51,7 +49,7 @@ def game_loop(screen: Surface):
             screen.blit(pygame.transform.rotate(frame_surface, -90), (0, 0))
 
         if shared_data.showing_result:
-            if time.time() - result_display_time < 5:
+            if time() - result_display_time < 5:
                 for i, result_text in enumerate(result_texts):
                     result_surface = font.render(result_text, True, (255, 255, 255))
                     screen.blit(result_surface, (650, 120 + i * 30))
@@ -63,10 +61,10 @@ def game_loop(screen: Surface):
             if not round_in_progress and last_valid_gesture1 is not None \
                     and (shared_data.player_count == 1 or last_valid_gesture2 is not None):
                 shared_data.round_in_progress = True
-                shared_data.countdown_start = time.time()
+                shared_data.countdown_start = time()
 
             if round_in_progress:
-                countdown = int(4 - (time.time() - shared_data.countdown_start))
+                countdown = int(4 - (time() - shared_data.countdown_start))
                 if countdown > 0:
                     countdown_text = font.render(f"Отсчет: {countdown}", True, (255, 255, 255))
                     screen.blit(countdown_text, (650, 120))
@@ -93,12 +91,12 @@ def game_loop(screen: Surface):
                         f"{'Игрок 2' if shared_data.player_count == 2 else 'Компьютер'}: {player2_gesture.value}",
                         f"Результат: {result}"
                     ]
-                    result_display_time = time.time()
+                    result_display_time = time()
                     shared_data.showing_result = True
                     shared_data.round_in_progress = False
 
         pygame.display.update()
-        time.sleep(0.02)
+        sleep(0.02)
 
         for event in pygame.event.get():
             if event.type == pygame.QUIT:

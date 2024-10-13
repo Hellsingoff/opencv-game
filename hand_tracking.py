@@ -1,14 +1,15 @@
-import time
+from time import sleep
+from math import sqrt
+from typing import Dict, Tuple, Optional
+
 import cv2
-import math
 from mediapipe.python.solutions.hands import Hands
 from mediapipe.tasks.python.components.containers.landmark import NormalizedLandmark
 
-from Finger import Finger
+from finger import Finger
 from shared_data import shared_data
 from enums.finger import FingerName, FingerState
 from enums.gesture import GestureType
-from typing import Dict, Tuple, Optional
 
 selected_landmarks: Dict[FingerName, Tuple[int, int]] = {
     FingerName.INDEX: (5, 8),
@@ -19,7 +20,7 @@ selected_landmarks: Dict[FingerName, Tuple[int, int]] = {
 
 
 def calculate_distance(point1: NormalizedLandmark, point2: NormalizedLandmark) -> float:
-    return math.sqrt((point1.x - point2.x) ** 2 + (point1.y - point2.y) ** 2)
+    return sqrt((point1.x - point2.x) ** 2 + (point1.y - point2.y) ** 2)
 
 
 def determine_finger_position(wrist_to_mcp: float, wrist_to_tip: float) -> FingerState:
@@ -91,5 +92,5 @@ def process_hand() -> None:
             else:
                 shared_data.gesture = {1: None, 2: None}
                 shared_data.fingers = {1: {}, 2: {}}
-        time.sleep(0.02)
+        sleep(0.02)
     cap.release()
